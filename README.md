@@ -6,7 +6,7 @@ A simple CLI to spit out boilerplate code for media walls and list feeds.
 
 Example Usage:
 
-    $> python streamhub-app-generator.py -n "strategy-prod.fyre.co" -s 340628 -a "custom-1393461312708" "custom-1393461312708" -t "wall"
+    $> python streamhub-app-generator.py -n "ymca-prod.fyre.co" -s 354826 --list-article-ids "custom-1394063863389" --wall-article-ids "custom-1394063863389" -f /Users/derekchinn/code/agency/condenast/golf-digest/index.html
 
 Options/Help (e.g. -h):
 
