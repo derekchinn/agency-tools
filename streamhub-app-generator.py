@@ -1,4 +1,4 @@
-import sys, itertools, os, argparse
+import sys, itertools, os, argparse, urllib2, json, re
 
 class Application_Type(object):
     LIST = "list"
@@ -67,6 +67,11 @@ class Application(object):
 
         template = """
             var collection{iter} = new Collection({opt_var});
+            collection{iter}.on("error", function (err) {{
+                if (console) {{
+                    console.log("Error just occurred: " + err);
+                }}
+            }});
             collection{iter}.pipe({view_var});
         """.format(iter=var_id, opt_var=opt_var, view_var=view_var)
 
@@ -135,6 +140,10 @@ class Generator(object):
         return header
 
     def _build_body(self):
+        """
+        Builds body of the html file
+        """
+
         include = ""
         if Application_Type.LIST in self._app_types:
             include += """var ListView = Livefyre.require("streamhub-sdk/content/views/content-list-view");\n\t\t\t"""
@@ -184,6 +193,34 @@ class Generator(object):
         f.close()
         print "\nSuccess. File can be found here {}\n".format(self.filename)
 
+def get_versions(args_dict):
+    """
+    Modifies the args dict based upon the options it has to get the appropriate sdk and application
+    versions.
+    """
+
+    if args_dict["wall_article_ids"] and (not args_dict["wall_version"] or not args_dict["sdk_version"]):
+        print "ERROR: Must specify both wall version and sdk version if specifying a wall version"
+        sys.exit(2)
+
+    if args_dict["wall_article_ids"] and not args_dict["wall_version"] and not args_dict["sdk_version"]:
+        url = "http://appgallery.herokuapp.com/api/v1/packages/json"
+        apps = json.loads(urllib2.urlopen(url).read())
+        for app in apps:
+            if app["id"] == "Livefyre/streamhub-wall":
+                args_dict["wall_version"] = app["latestBuild"].get("version", "")
+                args_dict["sdk_version"] = app["latestBuild"].get("sdkVersion", "")
+                break
+
+    if args_dict["list_article_ids"] and not args_dict["sdk_version"]:
+        reg = re.compile("^v\d+\.\d+\.\d+$")
+        url = "https://api.github.com/repos/Livefyre/streamhub-sdk/tags"
+        tags =  json.loads(urllib2.urlopen(url).read())
+        for tag in tags:
+            if reg.match(tag["name"]):
+                args_dict["sdk_version"] = tag["name"]
+                break
+
 def main():
     """
     The main entry point to the application
@@ -195,17 +232,19 @@ def main():
     parser.add_argument("-s", "--site-id", help="the site id the app is for (e.g. 123456)", required=True)
 
     parser.add_argument("--wall-article-ids", nargs="+", help="article ids for media walls (e.g. article-id-1 article-id-2")
-    parser.add_argument("--list-article-ids", nargs="+", help="article ids for media walls (e.g. article-id-1 article-id-2")
+    parser.add_argument("--list-article-ids", nargs="+", help="article ids for list views (e.g. article-id-1 article-id-2")
 
-    parser.add_argument("-f", "--filename", help="the output filename", default="index.html")
-    parser.add_argument("-v", "--sdk-version", help="(optional - will attempt to use latest) which sdk version you'd like to use", default="v2.6.1")
-    parser.add_argument("-w", "--wall-version", help="(optional - will attempt to use latest) which version of the medi wall you want to use", default="v2.2.4-build.155")
+    parser.add_argument("-f", "--filename", help="the output filename", default="./index.html")
+    parser.add_argument("-v", "--sdk-version", help="(optional - will attempt to use latest) which sdk version you'd like to use")
+    parser.add_argument("-w", "--wall-version", help="(optional - will attempt to use latest) which version of the media wall you want to use")
 
     args = parser.parse_args()
     args_dict = vars(args)
     if not args_dict["list_article_ids"] and not args_dict["wall_article_ids"]:
         print "ERROR: Must have at least 1 list_article_ids or wall_article_ids"
         sys.exit(2)
+
+    get_versions(args_dict)
 
     generator = Generator(**args_dict)
     generator.generate_html()
