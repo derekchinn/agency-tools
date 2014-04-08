@@ -128,13 +128,13 @@ class Generator(object):
         """
 
         header = """
-    <script src="http://cdn.livefyre.com/libs/sdk/{sdk_version}/streamhub-sdk.min.js"></script>
-    <link rel="stylesheet" href="http://cdn.livefyre.com/libs/sdk/{sdk_version}/streamhub-sdk.min.css" />
+    <script src="http://cdn.livefyre.com/libs/sdk/v{sdk_version}/streamhub-sdk.min.js"></script>
+    <link rel="stylesheet" href="http://cdn.livefyre.com/libs/sdk/v{sdk_version}/streamhub-sdk.min.css" />
         """.format(sdk_version=self.sdk_version)
         
         if Application_Type.WALL in self._app_types:
             header += """
-    <script src="http://cdn.livefyre.com/libs/apps/Livefyre/streamhub-wall/{wall_version}/streamhub-wall.min.js"></script>
+    <script src="http://cdn.livefyre.com/libs/apps/Livefyre/streamhub-wall/v{wall_version}/streamhub-wall.min.js"></script>
             """.format(wall_version=self.wall_version)
 
         return header
@@ -199,7 +199,7 @@ def get_versions(args_dict):
     versions.
     """
 
-    if args_dict["wall_article_ids"] and (not args_dict["wall_version"] or not args_dict["sdk_version"]):
+    if args_dict["wall_article_ids"] and ((args_dict["wall_version"] and not args_dict["sdk_version"]) or (not args_dict["wall_version"] and args_dict["sdk_version"])):
         print "ERROR: Must specify both wall version and sdk version if specifying a wall version"
         sys.exit(2)
 
